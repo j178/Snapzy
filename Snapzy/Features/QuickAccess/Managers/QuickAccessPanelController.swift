@@ -18,13 +18,17 @@ final class QuickAccessPanelController {
   private var position: QuickAccessPosition = .bottomRight
   private let padding: CGFloat = 20
   private var isAnimating = false
+  private var visibleItemCount = 0
+  private var overlayScale: CGFloat = 1
   private var reduceMotion: Bool {
     NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
   }
 
   /// Show SwiftUI content in floating panel with slide-in animation
-  func show<Content: View>(_ content: Content, size: CGSize) {
+  func show<Content: View>(_ content: Content, size: CGSize, itemCount: Int, scale: CGFloat) {
     guard !isAnimating else { return }
+    visibleItemCount = itemCount
+    overlayScale = scale
 
     let screen = ScreenUtility.activeScreen()
     let targetOrigin = position.calculateOrigin(for: size, on: screen, padding: padding)
@@ -34,6 +38,7 @@ final class QuickAccessPanelController {
     let hostingView = NSHostingView(rootView: content)
     hostingView.frame = NSRect(origin: .zero, size: size)
     panel.contentView = hostingView
+    panel.updatePassthroughRegion(itemCount: visibleItemCount, scale: overlayScale)
 
     self.panel = panel
 
@@ -64,6 +69,7 @@ final class QuickAccessPanelController {
         panel.animator().setFrame(targetFrame, display: true)
       }, completionHandler: { [weak self] in
         MainActor.assumeIsolated {
+          panel.updatePassthroughRegion(itemCount: self?.visibleItemCount ?? 0, scale: self?.overlayScale ?? 1)
           self?.isAnimating = false
         }
       })
@@ -78,6 +84,13 @@ final class QuickAccessPanelController {
     let hostingView = NSHostingView(rootView: content)
     hostingView.frame = panel.contentView?.bounds ?? .zero
     panel.contentView = hostingView
+    panel.updatePassthroughRegion(itemCount: visibleItemCount, scale: overlayScale)
+  }
+
+  func updateInteractionMetrics(itemCount: Int, scale: CGFloat) {
+    visibleItemCount = itemCount
+    overlayScale = scale
+    panel?.updatePassthroughRegion(itemCount: itemCount, scale: scale)
   }
 
   /// Update panel position on screen
@@ -93,6 +106,7 @@ final class QuickAccessPanelController {
     let origin = position.calculateOrigin(for: size, on: screen, padding: padding)
     let targetFrame = NSRect(origin: origin, size: size)
     panel.setFrame(targetFrame, display: true, animate: false)
+    panel.updatePassthroughRegion(itemCount: visibleItemCount, scale: overlayScale)
   }
 
   /// Hide panel with slide-out animation
@@ -106,8 +120,8 @@ final class QuickAccessPanelController {
         context.timingFunction = CAMediaTimingFunction(name: .easeIn)
         panel.animator().alphaValue = 0
       }, completionHandler: { [weak self] in
-        panel.close()
         MainActor.assumeIsolated {
+          panel.close()
           self?.panel = nil
         }
       })
@@ -125,8 +139,8 @@ final class QuickAccessPanelController {
         panel.animator().setFrame(offscreenFrame, display: true)
         panel.animator().alphaValue = 0.5
       }, completionHandler: { [weak self] in
-        panel.close()
         MainActor.assumeIsolated {
+          panel.close()
           self?.panel = nil
           self?.isAnimating = false
         }
@@ -147,12 +161,18 @@ final class QuickAccessPanelController {
 
     if reduceMotion {
       panel.setFrameOrigin(origin)
+      panel.updatePassthroughRegion(itemCount: visibleItemCount, scale: overlayScale)
     } else {
-      NSAnimationContext.runAnimationGroup { context in
+      NSAnimationContext.runAnimationGroup({ context in
         context.duration = 0.3
         context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         panel.animator().setFrameOrigin(origin)
-      }
+      }, completionHandler: { [weak self] in
+        MainActor.assumeIsolated {
+          guard let self else { return }
+          panel.updatePassthroughRegion(itemCount: self.visibleItemCount, scale: self.overlayScale)
+        }
+      })
     }
   }
 }

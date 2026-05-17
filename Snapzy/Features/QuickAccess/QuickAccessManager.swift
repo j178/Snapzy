@@ -21,7 +21,11 @@ final class QuickAccessManager: ObservableObject {
 
   // MARK: - Published State
 
-  @Published private(set) var items: [QuickAccessItem] = []
+  @Published private(set) var items: [QuickAccessItem] = [] {
+    didSet {
+      refreshPanelInteractionMetrics()
+    }
+  }
   @Published var position: QuickAccessPosition = .bottomRight {
     didSet {
       UserDefaults.standard.set(position.rawValue, forKey: Keys.position)
@@ -53,6 +57,7 @@ final class QuickAccessManager: ObservableObject {
       if panelController.isVisible {
         panelController.updateSize(calculateMaxPanelSize())
       }
+      refreshPanelInteractionMetrics()
     }
   }
   @Published var dragDropEnabled: Bool = true {
@@ -966,7 +971,12 @@ final class QuickAccessManager: ObservableObject {
   private func showPanel() {
     let stackView = QuickAccessStackView(manager: self)
     let size = calculateMaxPanelSize()
-    panelController.show(stackView, size: size)
+    panelController.show(
+      stackView,
+      size: size,
+      itemCount: visiblePanelItemCount,
+      scale: CGFloat(overlayScale)
+    )
     DiagnosticLogger.shared.log(
       .debug,
       .ui,
@@ -978,6 +988,17 @@ final class QuickAccessManager: ObservableObject {
   private func showPanelIfNeeded() {
     guard !panelController.isVisible else { return }
     showPanel()
+  }
+
+  private var visiblePanelItemCount: Int {
+    min(items.count, maxVisibleItems)
+  }
+
+  private func refreshPanelInteractionMetrics() {
+    panelController.updateInteractionMetrics(
+      itemCount: visiblePanelItemCount,
+      scale: CGFloat(overlayScale)
+    )
   }
 
   private func item(matching url: URL) -> QuickAccessItem? {

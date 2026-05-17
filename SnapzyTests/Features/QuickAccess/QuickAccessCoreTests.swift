@@ -132,6 +132,27 @@ final class QuickAccessCoreTests: XCTestCase {
     XCTAssertGreaterThan(window.level.rawValue, NSWindow.Level.floating.rawValue + 1)
   }
 
+  func testQuickAccessPanel_interactiveRegionTracksVisibleCardsOnly() {
+    let panelHeight =
+      QuickAccessLayout.scaledCardHeight(1) * 5
+      + QuickAccessLayout.cardSpacing * 4
+      + QuickAccessLayout.containerPadding * 2
+    let panel = QuickAccessPanel(
+      contentRect: NSRect(x: 100, y: 100, width: 204, height: panelHeight)
+    )
+    defer { panel.close() }
+
+    panel.updatePassthroughRegion(itemCount: 1, scale: 1)
+
+    XCTAssertEqual(
+      QuickAccessPanel.interactiveContentHeight(itemCount: 1, scale: 1, panelHeight: panelHeight),
+      QuickAccessLayout.cardHeight + QuickAccessLayout.containerPadding * 2,
+      accuracy: 0.001
+    )
+    XCTAssertTrue(panel.containsInteractivePoint(NSPoint(x: 150, y: 120)))
+    XCTAssertFalse(panel.containsInteractivePoint(NSPoint(x: 150, y: panel.frame.maxY - 10)))
+  }
+
   func testQuickAccessActionConfigurationStore_usesDefaultOrderAndEnabledActions() {
     let defaults = makeIsolatedDefaults()
     let store = makeActionConfigurationStore(defaults: defaults)
