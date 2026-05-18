@@ -5,6 +5,10 @@
   <p><strong>Chụp màn hình, quay màn hình, chú thích và chỉnh sửa macOS thuần native ngay từ thanh menu.</strong></p>
 
   <p>
+    <a href="https://trendshift.io/repositories/24550" target="_blank"><img src="https://trendshift.io/api/badge/repositories/24550" alt="duongductrong%2FSnapzy | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+  </p>
+
+  <p>
     Built with <a href="https://developer.apple.com/xcode/swiftui/">SwiftUI</a>,
     <a href="https://developer.apple.com/documentation/appkit">AppKit</a>,
     <a href="https://developer.apple.com/documentation/screencapturekit">ScreenCaptureKit</a>,
