@@ -467,7 +467,7 @@ struct VideoExportSettingsPanel: View {
         .font(.system(size: 9))
         .foregroundColor(.secondary)
 
-      Slider(value: volumeBinding(for: role), in: 0...2, step: 0.05)
+      Slider(value: volumeBinding(for: role).stepped(by: 0.05, in: 0...2), in: 0...2)
         .frame(width: 140)
         .controlSize(.small)
 

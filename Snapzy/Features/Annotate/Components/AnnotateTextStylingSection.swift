@@ -46,9 +46,8 @@ struct TextStylingSection: View {
         value: Binding(
           get: { annotation.properties.fontSize },
           set: { state.updateAnnotationProperties(id: annotation.id, fontSize: $0, recordsUndo: true) }
-        ),
-        in: 12 ... 72,
-        step: 1
+        ).stepped(by: 1, in: 12 ... 72),
+        in: 12 ... 72
       )
       .controlSize(.small)
     }

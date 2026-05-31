@@ -276,9 +276,8 @@ struct ZoomSettingsContent: View {
           .foregroundColor(.secondary)
 
         Slider(
-          value: $localZoomLevel,
-          in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel,
-          step: 0.1
+          value: $localZoomLevel.stepped(by: 0.1, in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel),
+          in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel
         ) { isEditing in
           if !isEditing {
             applyZoomLevel()
@@ -327,7 +326,7 @@ struct ZoomSettingsContent: View {
           .monospacedDigit()
       }
 
-      Slider(value: $localFollowSpeed, in: AutoFocusSettings.followSpeedRange, step: 0.05) { isEditing in
+      Slider(value: $localFollowSpeed.stepped(by: 0.05, in: AutoFocusSettings.followSpeedRange), in: AutoFocusSettings.followSpeedRange) { isEditing in
         if !isEditing {
           applyFollowSpeed()
         }
@@ -373,9 +372,8 @@ struct ZoomSettingsContent: View {
           .foregroundColor(.secondary)
 
         Slider(
-          value: $localTransitionDuration,
-          in: ZoomCalculator.transitionDurationRange,
-          step: 0.05
+          value: $localTransitionDuration.stepped(by: 0.05, in: ZoomCalculator.transitionDurationRange),
+          in: ZoomCalculator.transitionDurationRange
         ) { isEditing in
           if !isEditing {
             applyTransitionDuration()
@@ -429,7 +427,7 @@ struct ZoomSettingsContent: View {
           .monospacedDigit()
       }
 
-      Slider(value: $localFocusMargin, in: AutoFocusSettings.focusMarginRange, step: 0.05) { isEditing in
+      Slider(value: $localFocusMargin.stepped(by: 0.05, in: AutoFocusSettings.focusMarginRange), in: AutoFocusSettings.focusMarginRange) { isEditing in
         if !isEditing {
           applyFocusMargin()
         }

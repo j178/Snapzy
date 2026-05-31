@@ -93,9 +93,8 @@ struct ZoomSettingsPopover: View {
           .foregroundColor(.secondary)
 
         Slider(
-          value: $localZoomLevel,
-          in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel,
-          step: 0.1
+          value: $localZoomLevel.stepped(by: 0.1, in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel),
+          in: ZoomSegment.minZoomLevel...ZoomSegment.maxZoomLevel
         ) { isEditing in
           if !isEditing {
             applyZoomLevel()

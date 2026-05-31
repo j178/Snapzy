@@ -2500,7 +2500,7 @@ private struct InlineAreaSliderControl: View {
           .font(.system(size: 10, weight: .semibold))
           .foregroundColor(InlineAreaChrome.secondaryText)
 
-        Slider(value: $value, in: range, step: step)
+        Slider(value: $value.stepped(by: step, in: range), in: range)
           .frame(width: 58)
           .controlSize(.small)
 

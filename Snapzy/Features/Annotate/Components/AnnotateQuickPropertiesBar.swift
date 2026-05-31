@@ -1373,7 +1373,7 @@ private struct QuickStrokeWidthControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value, in: AnnotationProperties.controlValueRange, step: 1)
+        Slider(value: $value.stepped(by: 1, in: AnnotationProperties.controlValueRange), in: AnnotationProperties.controlValueRange)
           .frame(width: sliderWidth)
           .controlSize(.small)
 
@@ -1400,7 +1400,7 @@ private struct QuickTextFontSizeControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value, in: 12 ... 72, step: 1)
+        Slider(value: $value.stepped(by: 1, in: 12 ... 72), in: 12 ... 72)
           .frame(width: sliderWidth)
           .controlSize(.small)
 
@@ -1488,7 +1488,7 @@ private struct QuickWatermarkOpacityControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value, in: 0.05 ... 0.65, step: 0.01)
+        Slider(value: $value.stepped(by: 0.01, in: 0.05 ... 0.65), in: 0.05 ... 0.65)
           .frame(width: sliderWidth)
           .controlSize(.small)
 
@@ -1515,7 +1515,7 @@ private struct QuickWatermarkRotationControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value, in: -45 ... 45, step: 1)
+        Slider(value: $value.stepped(by: 1, in: -45 ... 45), in: -45 ... 45)
           .frame(width: sliderWidth)
           .controlSize(.small)
 
@@ -1542,7 +1542,7 @@ private struct QuickCornerRadiusControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value, in: 0 ... 60, step: 1)
+        Slider(value: $value.stepped(by: 1, in: 0 ... 60), in: 0 ... 60)
           .frame(width: sliderWidth)
           .controlSize(.small)
 

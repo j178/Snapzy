@@ -36,7 +36,7 @@ struct QuickAccessSettingsView: View {
             Text(verbatim: "S")
               .font(.caption)
               .foregroundColor(.secondary)
-            Slider(value: $manager.overlayScale, in: 0.75...1.5, step: 0.25)
+            Slider(value: $manager.overlayScale.stepped(by: 0.25, in: 0.75...1.5), in: 0.75...1.5)
               .frame(width: 100)
             Text(verbatim: "L")
               .font(.caption)
@@ -68,7 +68,7 @@ struct QuickAccessSettingsView: View {
 
             Spacer()
 
-            Slider(value: $manager.autoDismissDelay, in: 3...30, step: 1)
+            Slider(value: $manager.autoDismissDelay.stepped(by: 1, in: 3...30), in: 3...30)
               .frame(width: 120)
 
             Text("\(Int(manager.autoDismissDelay))s")

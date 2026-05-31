@@ -80,7 +80,7 @@ struct HistorySettingsView: View {
             Text(L10n.PreferencesHistory.panelSizeSmall)
               .font(.caption)
               .foregroundColor(.secondary)
-            Slider(value: $manager.panelScale, in: HistoryFloatingLayout.scaleRange, step: 0.05)
+            Slider(value: $manager.panelScale.stepped(by: 0.05, in: HistoryFloatingLayout.scaleRange), in: HistoryFloatingLayout.scaleRange)
               .frame(width: 120)
             Text(L10n.PreferencesHistory.panelSizeLarge)
               .font(.caption)
@@ -106,7 +106,7 @@ struct HistorySettingsView: View {
             Slider(value: Binding(
               get: { Double(manager.maxDisplayedItems) },
               set: { manager.maxDisplayedItems = Int($0) }
-            ), in: 3...20, step: 1)
+            ).stepped(by: 1, in: 3...20), in: 3...20)
             .frame(width: 120)
           }
           .frame(width: 220, alignment: .trailing)
@@ -127,7 +127,7 @@ struct HistorySettingsView: View {
             Slider(value: Binding(
               get: { Double(historyRetentionDays) },
               set: { historyRetentionDays = Int($0) }
-            ), in: 0...90, step: 1)
+            ).stepped(by: 1, in: 0...90), in: 0...90)
             .frame(width: 120)
           }
           .frame(width: 220, alignment: .trailing)
@@ -146,7 +146,7 @@ struct HistorySettingsView: View {
             Slider(value: Binding(
               get: { Double(historyMaxCount) },
               set: { historyMaxCount = Int($0) }
-            ), in: 0...1000, step: 50)
+            ).stepped(by: 50, in: 0...1000), in: 0...1000)
             .frame(width: 120)
           }
           .frame(width: 220, alignment: .trailing)

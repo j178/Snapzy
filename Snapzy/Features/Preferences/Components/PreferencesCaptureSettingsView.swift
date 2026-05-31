@@ -396,7 +396,7 @@ struct CaptureSettingsView: View {
               title: L10n.PreferencesCapture.highlightSizeTitle,
               description: L10n.PreferencesCapture.highlightSizeDescription(Int(mouseHighlightSize))
             ) {
-              Slider(value: $mouseHighlightSize, in: 30...100, step: 2)
+              Slider(value: $mouseHighlightSize.stepped(by: 2, in: 30...100), in: 30...100)
                 .frame(width: 140)
             }
 
@@ -407,7 +407,7 @@ struct CaptureSettingsView: View {
                 String(format: "%.1f", mouseHighlightAnimDuration)
               )
             ) {
-              Slider(value: $mouseHighlightAnimDuration, in: 0.3...2.0, step: 0.1)
+              Slider(value: $mouseHighlightAnimDuration.stepped(by: 0.1, in: 0.3...2.0), in: 0.3...2.0)
                 .frame(width: 140)
             }
 
@@ -440,7 +440,7 @@ struct CaptureSettingsView: View {
               title: L10n.PreferencesCapture.opacityTitle,
               description: L10n.PreferencesCapture.opacityDescription(Int(mouseHighlightOpacity * 100))
             ) {
-              Slider(value: $mouseHighlightOpacity, in: 0.2...1.0, step: 0.05)
+              Slider(value: $mouseHighlightOpacity.stepped(by: 0.05, in: 0.2...1.0), in: 0.2...1.0)
                 .frame(width: 140)
             }
 
@@ -463,7 +463,7 @@ struct CaptureSettingsView: View {
               title: L10n.PreferencesCapture.fontSizeTitle,
               description: L10n.PreferencesCapture.fontSizeDescription(Int(keystrokeFontSize))
             ) {
-              Slider(value: $keystrokeFontSize, in: 12...32, step: 1)
+              Slider(value: $keystrokeFontSize.stepped(by: 1, in: 12...32), in: 12...32)
                 .frame(width: 140)
             }
 
@@ -489,7 +489,7 @@ struct CaptureSettingsView: View {
                 String(format: "%.1f", keystrokeDisplayDuration)
               )
             ) {
-              Slider(value: $keystrokeDisplayDuration, in: 0.5...5.0, step: 0.5)
+              Slider(value: $keystrokeDisplayDuration.stepped(by: 0.5, in: 0.5...5.0), in: 0.5...5.0)
                 .frame(width: 140)
             }
 
