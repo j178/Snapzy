@@ -1677,7 +1677,8 @@ private struct InlineAreaPropertiesBar: View {
               value: state.quickStrokeWidthBinding,
               range: AnnotationProperties.controlValueRange,
               step: 1,
-              displayText: state.quickStrokeWidthDisplayText
+              displayText: state.quickStrokeWidthDisplayText,
+              onEditingChanged: state.setQuickPropertiesControlEditing
             )
           }
 
@@ -1688,7 +1689,8 @@ private struct InlineAreaPropertiesBar: View {
               value: state.quickTextFontSizeBinding,
               range: 12 ... 72,
               step: 1,
-              displayText: "\(Int(state.quickTextFontSizeBinding.wrappedValue.rounded()))"
+              displayText: "\(Int(state.quickTextFontSizeBinding.wrappedValue.rounded()))",
+              onEditingChanged: state.setQuickPropertiesControlEditing
             )
           }
 
@@ -1699,7 +1701,8 @@ private struct InlineAreaPropertiesBar: View {
               value: state.quickCornerRadiusBinding,
               range: 0 ... 60,
               step: 1,
-              displayText: "\(Int(state.quickCornerRadiusBinding.wrappedValue.rounded()))"
+              displayText: "\(Int(state.quickCornerRadiusBinding.wrappedValue.rounded()))",
+              onEditingChanged: state.setQuickPropertiesControlEditing
             )
           }
 
@@ -1710,7 +1713,8 @@ private struct InlineAreaPropertiesBar: View {
               value: state.quickWatermarkOpacityBinding,
               range: 0.05 ... 0.65,
               step: 0.01,
-              displayText: "\(Int((state.quickWatermarkOpacityBinding.wrappedValue * 100).rounded()))%"
+              displayText: "\(Int((state.quickWatermarkOpacityBinding.wrappedValue * 100).rounded()))%",
+              onEditingChanged: state.setQuickPropertiesControlEditing
             )
 
             InlineAreaSliderControl(
@@ -1719,7 +1723,8 @@ private struct InlineAreaPropertiesBar: View {
               value: state.quickWatermarkRotationBinding,
               range: -45 ... 45,
               step: 1,
-              displayText: "\(Int(state.quickWatermarkRotationBinding.wrappedValue.rounded()))deg"
+              displayText: "\(Int(state.quickWatermarkRotationBinding.wrappedValue.rounded()))deg",
+              onEditingChanged: state.setQuickPropertiesControlEditing
             )
           }
         }
@@ -2492,6 +2497,7 @@ private struct InlineAreaSliderControl: View {
   let range: ClosedRange<CGFloat>
   let step: CGFloat
   let displayText: String
+  let onEditingChanged: (Bool) -> Void
 
   var body: some View {
     InlineAreaPropertyGroup(title: title) {
@@ -2500,9 +2506,13 @@ private struct InlineAreaSliderControl: View {
           .font(.system(size: 10, weight: .semibold))
           .foregroundColor(InlineAreaChrome.secondaryText)
 
-        Slider(value: $value.stepped(by: step, in: range), in: range)
-          .frame(width: 58)
-          .controlSize(.small)
+        Slider(
+          value: $value.stepped(by: step, in: range),
+          in: range,
+          onEditingChanged: onEditingChanged
+        )
+        .frame(width: 58)
+        .controlSize(.small)
 
         Text(displayText)
           .font(.system(size: 10, weight: .medium))

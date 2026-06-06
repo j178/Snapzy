@@ -1260,6 +1260,30 @@ final class AnnotateCoreTests: XCTestCase {
   }
 
   @MainActor
+  func testQuickPropertiesSliderGestureRecordsSingleUndoCheckpoint() throws {
+    let state = makeAnnotateState(defaults: UserDefaultsFactory.make())
+    let annotation = AnnotationItem(
+      type: .blur(.pixelated),
+      bounds: CGRect(x: 0, y: 0, width: 120, height: 80),
+      properties: AnnotationProperties(strokeWidth: 3)
+    )
+    state.annotations = [annotation]
+    state.setSelectedAnnotationIds([annotation.id])
+
+    state.setQuickPropertiesControlEditing(true)
+    state.quickStrokeWidthBinding.wrappedValue = 8
+    state.quickStrokeWidthBinding.wrappedValue = 12
+    state.setQuickPropertiesControlEditing(false)
+
+    XCTAssertEqual(try XCTUnwrap(state.annotations.first).properties.strokeWidth, 12)
+
+    state.undo()
+
+    XCTAssertEqual(try XCTUnwrap(state.annotations.first).properties.strokeWidth, 3)
+    XCTAssertFalse(state.canUndo)
+  }
+
+  @MainActor
   func testSharedParameterDefaultsPersistAcrossAnnotateStateInstances() {
     let defaults = UserDefaultsFactory.make()
     let firstState = makeAnnotateState(defaults: defaults)

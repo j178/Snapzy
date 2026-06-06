@@ -11,14 +11,13 @@ import SwiftUI
 
 /// Renders annotations to a CGContext
 struct AnnotationRenderer {
-  private static let interactiveApproximateReuseAreaThreshold: CGFloat = 90_000
   private static let livePreviewFullQualityAreaThreshold: CGFloat = 120_000
 
   let context: CGContext
   var editingTextId: UUID?
   var sourceImage: NSImage?
   var blurCacheManager: BlurCacheManager?
-  var interactiveBlurAnnotationId: UUID?
+  private var interactiveBlurAnnotationIds: Set<UUID>
   var interactiveEmbeddedImageAnnotationId: UUID?
   var embeddedImageProvider: ((UUID) -> NSImage?)?
   var embeddedCGImageProvider: ((UUID) -> CGImage?)?
@@ -29,6 +28,7 @@ struct AnnotationRenderer {
     sourceImage: NSImage? = nil,
     blurCacheManager: BlurCacheManager? = nil,
     interactiveBlurAnnotationId: UUID? = nil,
+    interactiveBlurAnnotationIds: Set<UUID> = [],
     interactiveEmbeddedImageAnnotationId: UUID? = nil,
     embeddedImageProvider: ((UUID) -> NSImage?)? = nil,
     embeddedCGImageProvider: ((UUID) -> CGImage?)? = nil
@@ -37,7 +37,11 @@ struct AnnotationRenderer {
     self.editingTextId = editingTextId
     self.sourceImage = sourceImage
     self.blurCacheManager = blurCacheManager
-    self.interactiveBlurAnnotationId = interactiveBlurAnnotationId
+    var normalizedInteractiveBlurIds = interactiveBlurAnnotationIds
+    if let interactiveBlurAnnotationId {
+      normalizedInteractiveBlurIds.insert(interactiveBlurAnnotationId)
+    }
+    self.interactiveBlurAnnotationIds = normalizedInteractiveBlurIds
     self.interactiveEmbeddedImageAnnotationId = interactiveEmbeddedImageAnnotationId
     self.embeddedImageProvider = embeddedImageProvider
     self.embeddedCGImageProvider = embeddedCGImageProvider
@@ -460,40 +464,44 @@ struct AnnotationRenderer {
 
     let renderBounds = alignToSourcePixelGrid(visibleBounds, sourceImage: sourceImage)
     let effectValue = blurEffectValue(for: blurType, controlValue: controlValue)
-    let shouldAllowApproximateReuse =
-      interactiveBlurAnnotationId == annotationId &&
-      (visibleBounds.width * visibleBounds.height) >= Self.interactiveApproximateReuseAreaThreshold
+    let shouldAllowApproximateReuse = interactiveBlurAnnotationIds.contains(annotationId)
 
     context.saveGState()
     context.clip(to: visibleBounds)
     defer { context.restoreGState() }
 
-    // Try cached version first for performance
-    if let cacheManager = blurCacheManager,
-       let cachedImage = cacheManager.getCachedBlur(
-         for: annotationId,
-         bounds: renderBounds,
-         sourceImage: sourceImage,
-         blurType: blurType,
-         effectValue: effectValue,
-         allowApproximateReuse: shouldAllowApproximateReuse
-       ) {
-      switch blurType {
-      case .pixelated:
-        context.saveGState()
-        context.setAllowsAntialiasing(false)
-        context.setShouldAntialias(false)
-        context.interpolationQuality = .none
-        context.draw(cachedImage, in: renderBounds)
-        context.restoreGState()
-      case .gaussian:
-        context.interpolationQuality = .high
-        context.draw(cachedImage, in: renderBounds)
+    // Editor preview path: never do exact work inside draw(). A cache miss schedules
+    // async refinement and returns immediately with a friendly placeholder.
+    if let cacheManager = blurCacheManager {
+      if let cachedImage = cacheManager.getCachedBlur(
+        for: annotationId,
+        bounds: renderBounds,
+        sourceImage: sourceImage,
+        blurType: blurType,
+        effectValue: effectValue,
+        allowApproximateReuse: shouldAllowApproximateReuse,
+        renderSynchronously: false,
+        quality: shouldAllowApproximateReuse ? .interactive : .settled
+      ) {
+        switch blurType {
+        case .pixelated:
+          context.saveGState()
+          context.setAllowsAntialiasing(false)
+          context.setShouldAntialias(false)
+          context.interpolationQuality = .none
+          context.draw(cachedImage, in: renderBounds)
+          context.restoreGState()
+        case .gaussian:
+          context.interpolationQuality = .high
+          context.draw(cachedImage, in: renderBounds)
+        }
+      } else {
+        BlurEffectRenderer.drawBlurPlaceholder(in: context, region: visibleBounds)
       }
       return
     }
 
-    // Fallback to direct render (slower)
+    // Export/fallback path: render deterministically when no preview cache manager exists.
     switch blurType {
     case .pixelated:
       BlurEffectRenderer.drawPixelatedRegion(

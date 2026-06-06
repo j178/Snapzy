@@ -59,6 +59,32 @@ final class AnnotateBlurCacheManagerTests: XCTestCase {
     XCTAssertTrue(first === second)
   }
 
+
+  func testGetCachedBlur_nonBlockingSchedulesRender() {
+    let id = UUID()
+    let bounds = CGRect(x: 10, y: 10, width: 50, height: 50)
+    let expectation = expectation(description: "async blur render completes")
+
+    cache.onRenderCompleted = { completedId, completedBounds in
+      XCTAssertEqual(completedId, id)
+      XCTAssertEqual(completedBounds, bounds)
+      expectation.fulfill()
+    }
+
+    let immediate = cache.getCachedBlur(
+      for: id,
+      bounds: bounds,
+      sourceImage: sourceImage,
+      blurType: .pixelated,
+      effectValue: 8,
+      renderSynchronously: false
+    )
+    XCTAssertNil(immediate)
+
+    wait(for: [expectation], timeout: 2.0)
+    XCTAssertTrue(cache.hasCachedBlur(for: id))
+  }
+
   func testInvalidate_removesCache() {
     let id = UUID()
     cache.getCachedBlur(for: id, bounds: CGRect(x: 0, y: 0, width: 20, height: 20), sourceImage: sourceImage, blurType: .pixelated, effectValue: 8)

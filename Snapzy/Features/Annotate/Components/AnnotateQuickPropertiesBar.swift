@@ -378,7 +378,10 @@ struct AnnotateQuickPropertiesBar: View {
           value: state.quickStrokeWidthBinding,
           displayText: state.quickStrokeWidthDisplayText,
           sliderWidth: density.sliderWidth,
-          groupSpacing: density.groupSpacing
+          groupSpacing: density.groupSpacing,
+          onEditingChanged: { isEditing in
+            state.setQuickPropertiesControlEditing(isEditing)
+          }
         )
       }
 
@@ -1365,6 +1368,7 @@ private struct QuickStrokeWidthControl: View {
   let displayText: String
   let sliderWidth: CGFloat
   let groupSpacing: CGFloat
+  let onEditingChanged: (Bool) -> Void
 
   var body: some View {
     QuickPropertiesGroup(title: title, spacing: groupSpacing) {
@@ -1373,9 +1377,13 @@ private struct QuickStrokeWidthControl: View {
           .font(.system(size: 10))
           .foregroundColor(.secondary)
 
-        Slider(value: $value.stepped(by: 1, in: AnnotationProperties.controlValueRange), in: AnnotationProperties.controlValueRange)
-          .frame(width: sliderWidth)
-          .controlSize(.small)
+        Slider(
+          value: $value.stepped(by: 1, in: AnnotationProperties.controlValueRange),
+          in: AnnotationProperties.controlValueRange,
+          onEditingChanged: onEditingChanged
+        )
+        .frame(width: sliderWidth)
+        .controlSize(.small)
 
         Text(displayText)
           .font(Typography.labelSmall)

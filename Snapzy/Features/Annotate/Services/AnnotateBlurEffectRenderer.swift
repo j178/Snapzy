@@ -10,6 +10,24 @@ import CoreGraphics
 import CoreImage
 import Metal
 
+/// Quality tier for blur renders. Interactive work must be bounded so UI input never waits on expensive effects.
+enum BlurRenderQuality: Equatable {
+  case interactive
+  case settled
+  case export
+
+  var maxGaussianSamplePixels: CGFloat? {
+    switch self {
+    case .interactive:
+      return 420_000
+    case .settled:
+      return 1_600_000
+    case .export:
+      return nil
+    }
+  }
+}
+
 /// Renders pixelated blur effect for sensitive content redaction
 struct BlurEffectRenderer {
 
@@ -68,7 +86,7 @@ struct BlurEffectRenderer {
     )
   }
 
-  /// Draw a pixelated region by sampling from source region and drawing into destination region
+  /// Draw a pixelated region by sampling from source region and drawing into destination region.
   static func drawPixelatedRegion(
     in context: CGContext,
     sourceImage: NSImage,
@@ -76,15 +94,34 @@ struct BlurEffectRenderer {
     destRegion: CGRect,
     pixelSize: CGFloat = defaultPixelSize
   ) {
-    guard sourceRegion.width > 0, sourceRegion.height > 0, destRegion.width > 0, destRegion.height > 0 else { return }
-
     guard let cgImage = sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
       drawFallbackBlur(in: context, region: destRegion)
       return
     }
 
+    drawPixelatedRegion(
+      in: context,
+      sourceCGImage: cgImage,
+      sourceSize: sourceImage.size,
+      sourceRegion: sourceRegion,
+      destRegion: destRegion,
+      pixelSize: pixelSize
+    )
+  }
+
+  /// Draw a pixelated region using a CGImage snapshot. Safe for background render work.
+  static func drawPixelatedRegion(
+    in context: CGContext,
+    sourceCGImage cgImage: CGImage,
+    sourceSize: CGSize,
+    sourceRegion: CGRect,
+    destRegion: CGRect,
+    pixelSize: CGFloat = defaultPixelSize
+  ) {
+    guard sourceRegion.width > 0, sourceRegion.height > 0, destRegion.width > 0, destRegion.height > 0 else { return }
+
     guard let mapping = makeRegionMapping(
-      sourceImage: sourceImage,
+      sourceSize: sourceSize,
       cgImage: cgImage,
       sourceRegion: sourceRegion,
       destRegion: destRegion
@@ -102,71 +139,49 @@ struct BlurEffectRenderer {
       croppedImage: croppedImage,
       in: context,
       destRect: mapping.clampedDestRegion,
-      pixelSize: pixelSize
+      pixelSize: pixelSize * max(mapping.imageScaleX, mapping.imageScaleY)
     )
   }
 
-  /// Draw pixelated version of cropped image region
+  /// Draw pixelated version of cropped image region.
+  /// Uses downsample -> nearest-neighbor upscale instead of one fill call per block.
   private static func drawPixelated(
     croppedImage: CGImage,
     in context: CGContext,
     destRect: CGRect,
     pixelSize: CGFloat
   ) {
-    let cols = Int(ceil(destRect.width / pixelSize))
-    let rows = Int(ceil(destRect.height / pixelSize))
-    guard cols > 0, rows > 0 else { return }
+    let blockSize = max(1, pixelSize)
+    let cols = max(1, Int(ceil(CGFloat(croppedImage.width) / blockSize)))
+    let rows = max(1, Int(ceil(CGFloat(croppedImage.height) / blockSize)))
 
-    let imageWidth = croppedImage.width
-    let imageHeight = croppedImage.height
-    guard let dataProvider = croppedImage.dataProvider,
-          let data = dataProvider.data,
-          let bytes = CFDataGetBytePtr(data) else {
+    guard let smallContext = CGContext(
+      data: nil,
+      width: cols,
+      height: rows,
+      bitsPerComponent: 8,
+      bytesPerRow: 0,
+      space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else {
       drawFallbackBlur(in: context, region: destRect)
       return
     }
 
-    let bytesPerPixel = croppedImage.bitsPerPixel / 8
-    let bytesPerRow = croppedImage.bytesPerRow
+    smallContext.interpolationQuality = .low
+    smallContext.draw(croppedImage, in: CGRect(x: 0, y: 0, width: cols, height: rows))
+
+    guard let lowResolutionImage = smallContext.makeImage() else {
+      drawFallbackBlur(in: context, region: destRect)
+      return
+    }
 
     context.saveGState()
     context.clip(to: destRect)
     context.setAllowsAntialiasing(false)
     context.setShouldAntialias(false)
-
-    for row in 0..<rows {
-      for col in 0..<cols {
-        let sampleX = Int((CGFloat(col) + 0.5) / CGFloat(cols) * CGFloat(imageWidth))
-        let sampleY = Int((CGFloat(row) + 0.5) / CGFloat(rows) * CGFloat(imageHeight))
-
-        let clampedX = min(max(sampleX, 0), imageWidth - 1)
-        let clampedY = min(max(sampleY, 0), imageHeight - 1)
-
-        let offset = clampedY * bytesPerRow + clampedX * bytesPerPixel
-        let r = CGFloat(bytes[offset]) / 255.0
-        let g = CGFloat(bytes[offset + 1]) / 255.0
-        let b = CGFloat(bytes[offset + 2]) / 255.0
-        let a = bytesPerPixel >= 4 ? CGFloat(bytes[offset + 3]) / 255.0 : 1.0
-
-        let blockX = destRect.origin.x + CGFloat(col) * pixelSize
-        let blockY = destRect.origin.y + destRect.height - CGFloat(row + 1) * pixelSize
-        let clampedMinX = max(blockX, destRect.minX)
-        let clampedMaxX = min(blockX + pixelSize, destRect.maxX)
-        let clampedMinY = max(blockY, destRect.minY)
-        let clampedMaxY = min(blockY + pixelSize, destRect.maxY)
-        guard clampedMaxX > clampedMinX, clampedMaxY > clampedMinY else { continue }
-        let blockRect = CGRect(
-          x: clampedMinX,
-          y: clampedMinY,
-          width: clampedMaxX - clampedMinX,
-          height: clampedMaxY - clampedMinY
-        )
-
-        context.setFillColor(red: r, green: g, blue: b, alpha: a)
-        context.fill(blockRect)
-      }
-    }
-
+    context.interpolationQuality = .none
+    context.draw(lowResolutionImage, in: destRect)
     context.restoreGState()
   }
 
@@ -174,6 +189,18 @@ struct BlurEffectRenderer {
   private static func drawFallbackBlur(in context: CGContext, region: CGRect) {
     context.setFillColor(NSColor.gray.withAlphaComponent(0.7).cgColor)
     context.fill(region)
+  }
+
+
+  /// Draw a subtle placeholder while an exact async blur render is pending.
+  static func drawBlurPlaceholder(
+    in context: CGContext,
+    region: CGRect
+  ) {
+    context.saveGState()
+    context.setFillColor(NSColor.gray.withAlphaComponent(0.32).cgColor)
+    context.fill(region)
+    context.restoreGState()
   }
 
   /// Draw blur preview during drag operation (simpler/faster)
@@ -194,39 +221,63 @@ struct BlurEffectRenderer {
     context.setLineDash(phase: 0, lengths: [])
   }
 
-  /// Draw Gaussian blur region using CIFilter (GPU-accelerated)
+  /// Draw Gaussian blur region using CIFilter (GPU-accelerated).
   static func drawGaussianRegion(
     in context: CGContext,
     sourceImage: NSImage,
     region: CGRect,
-    radius: Double = defaultGaussianRadius
+    radius: Double = defaultGaussianRadius,
+    quality: BlurRenderQuality = .export
   ) {
     drawGaussianRegion(
       in: context,
       sourceImage: sourceImage,
       sourceRegion: region,
       destRegion: region,
-      radius: radius
+      radius: radius,
+      quality: quality
     )
   }
 
-  /// Draw Gaussian blur by sampling from source region and drawing into destination region
+  /// Draw Gaussian blur by sampling from source region and drawing into destination region.
   static func drawGaussianRegion(
     in context: CGContext,
     sourceImage: NSImage,
     sourceRegion: CGRect,
     destRegion: CGRect,
-    radius: Double = defaultGaussianRadius
+    radius: Double = defaultGaussianRadius,
+    quality: BlurRenderQuality = .export
   ) {
-    guard sourceRegion.width > 0, sourceRegion.height > 0, destRegion.width > 0, destRegion.height > 0 else { return }
-
     guard let cgImage = sourceImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
       drawFallbackBlur(in: context, region: destRegion)
       return
     }
 
+    drawGaussianRegion(
+      in: context,
+      sourceCGImage: cgImage,
+      sourceSize: sourceImage.size,
+      sourceRegion: sourceRegion,
+      destRegion: destRegion,
+      radius: radius,
+      quality: quality
+    )
+  }
+
+  /// Draw Gaussian blur using a CGImage snapshot. Safe for background render work.
+  static func drawGaussianRegion(
+    in context: CGContext,
+    sourceCGImage cgImage: CGImage,
+    sourceSize: CGSize,
+    sourceRegion: CGRect,
+    destRegion: CGRect,
+    radius: Double = defaultGaussianRadius,
+    quality: BlurRenderQuality = .export
+  ) {
+    guard sourceRegion.width > 0, sourceRegion.height > 0, destRegion.width > 0, destRegion.height > 0 else { return }
+
     guard let mapping = makeRegionMapping(
-      sourceImage: sourceImage,
+      sourceSize: sourceSize,
       cgImage: cgImage,
       sourceRegion: sourceRegion,
       destRegion: destRegion
@@ -236,9 +287,10 @@ struct BlurEffectRenderer {
     }
 
     let targetPixelRegion = mapping.targetPixelRegion
+    let imageScale = max(mapping.imageScaleX, mapping.imageScaleY)
     let effectiveRadiusPx = effectiveGaussianRadiusPixels(
       baseRadius: CGFloat(radius),
-      imageScale: max(mapping.imageScaleX, mapping.imageScaleY),
+      imageScale: imageScale,
       pixelRegion: targetPixelRegion
     )
     let samplePaddingPx = ceil(effectiveRadiusPx * gaussianPaddingMultiplier)
@@ -251,54 +303,72 @@ struct BlurEffectRenderer {
       return
     }
 
+    let sampleExtent = CGRect(x: 0, y: 0, width: sampledCGImage.width, height: sampledCGImage.height)
+    let sampleArea = sampleExtent.width * sampleExtent.height
+    let downsampleScale: CGFloat
+    if let maxPixels = quality.maxGaussianSamplePixels, sampleArea > maxPixels {
+      downsampleScale = max(0.05, sqrt(maxPixels / sampleArea))
+    } else {
+      downsampleScale = 1
+    }
+
     let sampledCIImage = CIImage(cgImage: sampledCGImage)
-    let clampedInput = sampledCIImage.clampedToExtent()
+    let workingImage: CIImage
+    if downsampleScale < 0.999 {
+      workingImage = sampledCIImage.transformed(by: CGAffineTransform(scaleX: downsampleScale, y: downsampleScale))
+    } else {
+      workingImage = sampledCIImage
+    }
+
+    let clampedInput = workingImage.clampedToExtent()
     let filter = CIFilter(name: "CIGaussianBlur")
     filter?.setValue(clampedInput, forKey: kCIInputImageKey)
-    filter?.setValue(effectiveRadiusPx, forKey: kCIInputRadiusKey)
+    filter?.setValue(max(1, effectiveRadiusPx * downsampleScale), forKey: kCIInputRadiusKey)
     guard let outputImage = filter?.outputImage else {
       drawFallbackBlur(in: context, region: mapping.clampedDestRegion)
       return
     }
 
-    let croppedSampleOutput = outputImage.cropped(to: sampledCIImage.extent)
     let targetInSample = CGRect(
       x: targetPixelRegion.minX - sampledPixelRegion.minX,
       y: targetPixelRegion.minY - sampledPixelRegion.minY,
       width: targetPixelRegion.width,
       height: targetPixelRegion.height
-    ).intersection(sampledCIImage.extent)
-    guard !targetInSample.isEmpty else {
+    )
+    let workingTarget = targetInSample.applying(CGAffineTransform(scaleX: downsampleScale, y: downsampleScale))
+      .intersection(workingImage.extent)
+    guard !workingTarget.isEmpty else {
       drawFallbackBlur(in: context, region: mapping.clampedDestRegion)
       return
     }
-    let croppedTargetOutput = croppedSampleOutput.cropped(to: targetInSample)
 
-    guard let blurredCGImage = sharedCIContext.createCGImage(croppedTargetOutput, from: targetInSample) else {
+    let croppedTargetOutput = outputImage.cropped(to: workingTarget)
+    guard let blurredCGImage = sharedCIContext.createCGImage(croppedTargetOutput, from: workingTarget) else {
       drawFallbackBlur(in: context, region: mapping.clampedDestRegion)
       return
     }
 
     context.saveGState()
     context.clip(to: mapping.clampedDestRegion)
+    context.interpolationQuality = downsampleScale < 0.999 ? .high : .default
     context.draw(blurredCGImage, in: mapping.clampedDestRegion)
     context.restoreGState()
   }
 
   private static func makeRegionMapping(
-    sourceImage: NSImage,
+    sourceSize: CGSize,
     cgImage: CGImage,
     sourceRegion: CGRect,
     destRegion: CGRect
   ) -> RegionMapping? {
-    guard sourceImage.size.width > 0, sourceImage.size.height > 0 else { return nil }
+    guard sourceSize.width > 0, sourceSize.height > 0 else { return nil }
 
     let normalizedSourceRegion = sourceRegion.standardized
     let normalizedDestRegion = destRegion.standardized
     guard normalizedSourceRegion.width > 0, normalizedSourceRegion.height > 0,
           normalizedDestRegion.width > 0, normalizedDestRegion.height > 0 else { return nil }
 
-    let imageBounds = CGRect(origin: .zero, size: sourceImage.size)
+    let imageBounds = CGRect(origin: .zero, size: sourceSize)
     let clampedSourceRegion = normalizedSourceRegion.intersection(imageBounds)
     guard !clampedSourceRegion.isEmpty else { return nil }
 
@@ -318,14 +388,14 @@ struct BlurEffectRenderer {
       )
     }
 
-    let imageScaleX = CGFloat(cgImage.width) / sourceImage.size.width
-    let imageScaleY = CGFloat(cgImage.height) / sourceImage.size.height
+    let imageScaleX = CGFloat(cgImage.width) / sourceSize.width
+    let imageScaleY = CGFloat(cgImage.height) / sourceSize.height
     let pixelBounds = CGRect(x: 0, y: 0, width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))
 
     let pixelMinX = max(pixelBounds.minX, floor(clampedSourceRegion.minX * imageScaleX))
     let pixelMaxX = min(pixelBounds.maxX, ceil(clampedSourceRegion.maxX * imageScaleX))
-    let pixelMinY = max(pixelBounds.minY, floor((sourceImage.size.height - clampedSourceRegion.maxY) * imageScaleY))
-    let pixelMaxY = min(pixelBounds.maxY, ceil((sourceImage.size.height - clampedSourceRegion.minY) * imageScaleY))
+    let pixelMinY = max(pixelBounds.minY, floor((sourceSize.height - clampedSourceRegion.maxY) * imageScaleY))
+    let pixelMaxY = min(pixelBounds.maxY, ceil((sourceSize.height - clampedSourceRegion.minY) * imageScaleY))
     let targetPixelRegion = CGRect(
       x: pixelMinX,
       y: pixelMinY,

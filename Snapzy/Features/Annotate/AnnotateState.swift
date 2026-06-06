@@ -182,6 +182,8 @@ final class AnnotateState: ObservableObject {
   @Published var arrowStyle: ArrowStyle = .straight
   @Published var watermarkText: String = "Snapzy"
   @Published private var annotationToolProperties: [AnnotationToolType: AnnotationProperties] = [:]
+  private var isQuickPropertiesGestureEditing = false
+  private var quickPropertiesGestureUndoSnapshot: AnnotationSnapshot?
   private var sharedAnnotationColor: Color?
   private var sharedAnnotationParameterDefaults = SharedAnnotationParameterDefaults()
 
@@ -3231,6 +3233,22 @@ final class AnnotateState: ObservableObject {
     quickPropertiesSelectionTargets.filter { predicate($0.type) }
   }
 
+  func setQuickPropertiesControlEditing(_ isEditing: Bool) {
+    if isEditing {
+      beginQuickPropertiesGestureUndoIfNeeded()
+    } else {
+      isQuickPropertiesGestureEditing = false
+      quickPropertiesGestureUndoSnapshot = nil
+    }
+  }
+
+  private func beginQuickPropertiesGestureUndoIfNeeded() {
+    guard !isQuickPropertiesGestureEditing,
+          !quickPropertiesSelectionTargets.isEmpty else { return }
+    isQuickPropertiesGestureEditing = true
+    quickPropertiesGestureUndoSnapshot = currentSnapshot()
+  }
+
   private func updateQuickSelectionProperties(
     strokeWidth: CGFloat? = nil,
     strokeColor: Color? = nil,
@@ -3248,21 +3266,27 @@ final class AnnotateState: ObservableObject {
     }
     guard !selected.isEmpty else { return false }
 
-    if recordsUndo,
-       selected.contains(where: {
-         annotationPropertiesWillChange(
-           $0,
-           strokeWidth: strokeWidth,
-           fontSize: fontSize,
-           strokeColor: strokeColor,
-           fillColor: fillColor,
-           cornerRadius: cornerRadius,
-           opacity: opacity,
-           rotationDegrees: rotationDegrees,
-           watermarkStyle: watermarkStyle
-         )
-       }) {
-      saveState()
+    let shouldRecordUndo = recordsUndo && selected.contains(where: {
+      annotationPropertiesWillChange(
+        $0,
+        strokeWidth: strokeWidth,
+        fontSize: fontSize,
+        strokeColor: strokeColor,
+        fillColor: fillColor,
+        cornerRadius: cornerRadius,
+        opacity: opacity,
+        rotationDegrees: rotationDegrees,
+        watermarkStyle: watermarkStyle
+      )
+    })
+
+    if shouldRecordUndo {
+      if let snapshot = quickPropertiesGestureUndoSnapshot {
+        pushUndoSnapshot(snapshot, annotationCount: snapshot.annotations.count)
+        quickPropertiesGestureUndoSnapshot = nil
+      } else if !isQuickPropertiesGestureEditing {
+        saveState()
+      }
     }
 
     for annotation in selected {

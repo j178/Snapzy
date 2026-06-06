@@ -93,6 +93,9 @@ final class DrawingCanvasNSView: NSView {
     super.init(frame: .zero)
     setupView()
     observeStateChanges()
+    blurCacheManager.onRenderCompleted = { [weak self] _, imageBounds in
+      self?.invalidateDisplay(forImageRect: imageBounds)
+    }
   }
 
   @available(*, unavailable)
@@ -122,6 +125,16 @@ final class DrawingCanvasNSView: NSView {
 
   func invalidateDrawing() {
     needsDisplay = true
+  }
+
+  private func invalidateDisplay(forImageRect imageRect: CGRect) {
+    let imagePadding = max(12, 24 / max(displayScale, 0.0001))
+    let dirtyRect = imageToDisplay(imageRect.insetBy(dx: -imagePadding, dy: -imagePadding)).intersection(bounds)
+    if dirtyRect.isNull || dirtyRect.isEmpty {
+      needsDisplay = true
+    } else {
+      setNeedsDisplay(dirtyRect)
+    }
   }
 
   private func scheduleDisplayInvalidation() {
@@ -592,7 +605,6 @@ final class DrawingCanvasNSView: NSView {
       guard let start = dragStart, !activeIds.isEmpty else { return }
       let dx = imagePoint.x - start.x
       let dy = imagePoint.y - start.y
-      invalidateInteractiveBlurCaches(for: activeIds)
       Task { @MainActor in
         for id in activeIds {
           guard let originalBounds = originalBoundsByAnnotationId[id] else { continue }
@@ -808,7 +820,7 @@ final class DrawingCanvasNSView: NSView {
       editingTextId: state.editingTextAnnotationId,
       sourceImage: effectiveSourceImage,
       blurCacheManager: blurCacheManager,
-      interactiveBlurAnnotationId: activeInteractiveBlurAnnotationId(),
+      interactiveBlurAnnotationIds: activeInteractiveBlurAnnotationIds(),
       interactiveEmbeddedImageAnnotationId: activeInteractiveEmbeddedImageAnnotationId(),
       embeddedImageProvider: { [state] assetId in
         state.embeddedImage(for: assetId)
@@ -866,22 +878,23 @@ final class DrawingCanvasNSView: NSView {
     context.restoreGState()
   }
 
-  private func activeInteractiveBlurAnnotationId() -> UUID? {
-    let candidateId: UUID?
+  private func activeInteractiveBlurAnnotationIds() -> Set<UUID> {
+    let candidateIds: Set<UUID>
     if isResizingAnnotation {
-      candidateId = resizingAnnotationId
+      candidateIds = Set(resizingAnnotationId.map { [$0] } ?? [])
     } else if isDraggingAnnotation {
-      candidateId = draggingAnnotationId
+      candidateIds = draggingAnnotationIds.isEmpty
+        ? Set(draggingAnnotationId.map { [$0] } ?? [])
+        : draggingAnnotationIds
     } else {
-      candidateId = nil
+      candidateIds = []
     }
 
-    guard let id = candidateId,
-          let annotation = state.annotations.first(where: { $0.id == id }),
-          case .blur = annotation.type else {
-      return nil
-    }
-    return id
+    return Set(candidateIds.filter { id in
+      guard let annotation = state.annotations.first(where: { $0.id == id }),
+            case .blur = annotation.type else { return false }
+      return true
+    })
   }
 
   private func activeInteractiveEmbeddedImageAnnotationId() -> UUID? {
@@ -900,14 +913,6 @@ final class DrawingCanvasNSView: NSView {
       return nil
     }
     return id
-  }
-
-  private func invalidateInteractiveBlurCaches(for ids: Set<UUID>) {
-    for id in ids {
-      guard let annotation = state.annotations.first(where: { $0.id == id }),
-            case .blur = annotation.type else { continue }
-      blurCacheManager.invalidate(id: id)
-    }
   }
 
   private func drawSelectionAffordance(for annotation: AnnotationItem, in context: CGContext, showsHandles: Bool) {
