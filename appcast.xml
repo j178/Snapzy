@@ -6,6 +6,22 @@
     <description>Snapzy application updates</description>
     <language>en</language>
     <item>
+      <title>Version 1.20.8</title>
+      <sparkle:version>116</sparkle:version>
+      <sparkle:shortVersionString>1.20.8</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <pubDate>Sun, 07 Jun 2026 12:37:11 +0000</pubDate>
+      <description><![CDATA[
+        <style>:root { color-scheme: light dark; } body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.5; padding: 8px 16px; } h3 { font-size: 14px; margin: 12px 0 6px; } ul { padding-left: 20px; margin: 4px 0; } li { margin: 3px 0; }</style>
+        <h3>✨ Features</h3><ul><li>Add new aspect ratio options (3:4 and 2:3) to export settings and update related tests</li><li>Implement drag intent requirement for specific annotation tools and enhance drawing interaction logic</li><li>Add arrow bend direction functionality to annotation tools</li><li>Enhance Quick Properties Bar and Inline Area Properties Bar with Editing State Management</li></ul><h3>🐛 Bug Fixes</h3><ul><li>Update window activation logic for annotation and video editor windows</li><li>Reorder clipboard copy and Quick Access actions in PostCaptureActionHandler for improved performance</li></ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/duongductrong/Snapzy/releases/download/v1.20.8/Snapzy-v1.20.8.dmg"
+        sparkle:edSignature="Z7PVLAK3JjFxRkkGYglre+c3hNvTR9l5O/J07DVm9sr4LDC6ue1s2tfODmGSzY26JBvyVKFO5jCTbN5D6BKxAA=="
+        length="46917654"
+        type="application/octet-stream"/>
+    </item>
+    <item>
       <title>Version 1.20.7</title>
       <sparkle:version>115</sparkle:version>
       <sparkle:shortVersionString>1.20.7</sparkle:shortVersionString>
