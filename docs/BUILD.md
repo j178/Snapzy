@@ -18,6 +18,36 @@ open Snapzy.xcodeproj
 
 Press ⌘R to build and run.
 
+## Regenerate App Icon Assets
+
+After editing `Snapzy/SnapzyIcon.icon` in Icon Composer, regenerate the padded macOS asset catalog before building a release:
+
+```bash
+brew install imagemagick # one-time dependency if magick is missing
+scripts/generate-app-icon-assets.sh
+```
+
+The script renders the `.icon` package with Icon Composer's bundled `ictool`, then centers the rendered artwork in an 832 × 832 px box on a 1024 × 1024 px transparent canvas. This preserves the Icon Composer artwork while keeping Finder/Dock margins consistent with other macOS apps.
+
+If you only have a manually exported Icon Composer PNG, use:
+
+```bash
+scripts/generate-app-icon-assets.sh --source-png /path/to/IconComposerExport.png
+```
+
+For other projects, copy `scripts/generate-icon-composer-appiconset.sh` and run it directly:
+
+```bash
+./generate-icon-composer-appiconset.sh /path/to/MyIcon.icon
+```
+
+By default it writes `AppIcon.appiconset` next to the input `.icon` package. To target an existing asset catalog:
+
+```bash
+./generate-icon-composer-appiconset.sh /path/to/MyIcon.icon \
+  --appiconset /path/to/Assets.xcassets/AppIcon.appiconset
+```
+
 ## Command Line Build
 
 ### Development Build
