@@ -18,6 +18,7 @@ struct QuickAccessCardView: View {
   @ObservedObject private var preferencesManager = PreferencesManager.shared
   @ObservedObject private var actionConfiguration = QuickAccessActionConfigurationStore.shared
   @ObservedObject private var trackpadSwipeModeStore = QuickAccessTrackpadSwipeModeStore.shared
+  @ObservedObject private var swipeActionStore = QuickAccessSwipeActionStore.shared
   @ObservedObject private var cloudManager = CloudManager.shared
   @State private var isHovering = false
   @State private var isDragging = false
@@ -224,12 +225,35 @@ struct QuickAccessCardView: View {
       },
       onSwipeChanged: { translation in
         guard !reduceMotion else { return }
-        swipeOffset = translation
+        var finalTranslation = translation
+        if finalTranslation > 0 && swipeActionStore.action(for: .right) == nil {
+          finalTranslation = 0
+        } else if finalTranslation < 0 && swipeActionStore.action(for: .left) == nil {
+          finalTranslation = 0
+        }
+
+        guard finalTranslation != 0 else {
+          swipeOffset = 0
+          isSwiping = false
+          return
+        }
+
+        swipeOffset = finalTranslation
         isSwiping = true
       },
       onSwipeEnded: { translation, velocity in
         isSwiping = false
-        handleSwipeEnded(translation: translation, velocity: velocity)
+        var finalTranslation = translation
+        var finalVelocity = velocity
+        if finalTranslation > 0 && swipeActionStore.action(for: .right) == nil {
+          finalTranslation = 0
+          finalVelocity = 0
+        } else if finalTranslation < 0 && swipeActionStore.action(for: .left) == nil {
+          finalTranslation = 0
+          finalVelocity = 0
+        }
+
+        handleSwipeEnded(translation: finalTranslation, velocity: finalVelocity)
       },
       swipeSensitivity: CGFloat(manager.swipeSensitivity)
     )
@@ -239,16 +263,29 @@ struct QuickAccessCardView: View {
     let distanceThreshold = QuickAccessCardDragPolicy.dismissDistanceThreshold
     let velocityThreshold = QuickAccessCardDragPolicy.dismissVelocityThreshold
 
-    if abs(translation) > distanceThreshold || abs(velocity) > velocityThreshold {
-      swipeOffset = 0
-      isDismissing = true
-      QuickAccessSound.dismiss.play(reduceMotion: reduceMotion)
-      manager.removeScreenshot(id: item.id)
+    guard abs(translation) > distanceThreshold || abs(velocity) > velocityThreshold else {
+      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        swipeOffset = 0
+      }
       return
     }
 
-    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-      swipeOffset = 0
+    let direction: QuickAccessSwipeDirection = translation > 0 ? .right : .left
+    guard let configuredAction = swipeActionStore.action(for: direction) else {
+      withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        swipeOffset = 0
+      }
+      return
+    }
+
+    swipeOffset = 0
+
+    if configuredAction == .dismiss {
+      isDismissing = true
+      QuickAccessSound.dismiss.play(reduceMotion: reduceMotion)
+      manager.removeScreenshot(id: item.id)
+    } else {
+      performAction(configuredAction)
     }
   }
 

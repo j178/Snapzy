@@ -2259,6 +2259,41 @@ enum L10n {
       defaultValue: "Bottom right",
       comment: "Quick access preview placement slot title"
     )
+    static let swipeActionsSection = string(
+      "preferences-quick-access.section-swipe-actions",
+      defaultValue: "Swipe Actions",
+      comment: "Quick access preferences section title for swipe action zones"
+    )
+    static let swipeLeftAction = string(
+      "preferences-quick-access.swipe-left-action",
+      defaultValue: "Swipe Left",
+      comment: "Quick access swipe direction label"
+    )
+    static let swipeRightAction = string(
+      "preferences-quick-access.swipe-right-action",
+      defaultValue: "Swipe Right",
+      comment: "Quick access swipe direction label"
+    )
+    static let swipeActionDismiss = string(
+      "preferences-quick-access.swipe-action-dismiss",
+      defaultValue: "Dismiss",
+      comment: "Quick access swipe action label for dismiss behavior"
+    )
+    static let swipeActionsDescription = string(
+      "preferences-quick-access.swipe-actions-description",
+      defaultValue: "Drag actions onto the circular swipe targets to choose what runs after a two-finger swipe.",
+      comment: "Quick access swipe actions helper text"
+    )
+    static let swipeZoneResetToDismiss = string(
+      "preferences-quick-access.swipe-zone-reset-to-dismiss",
+      defaultValue: "Reset to Dismiss",
+      comment: "Quick access swipe zone context menu reset action"
+    )
+    static let swipeZoneClearAction = string(
+      "preferences-quick-access.swipe-zone-clear-action",
+      defaultValue: "Clear Action",
+      comment: "Quick access swipe zone context menu clear action"
+    )
   }
 
   enum PreferencesCapture {

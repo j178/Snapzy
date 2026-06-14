@@ -131,6 +131,11 @@ struct QuickAccessSettingsView: View {
             .fixedSize()
             .frame(width: 200, alignment: .trailing)
           }
+
+          Text(L10n.PreferencesQuickAccess.swipeActionsDescription)
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(.vertical, 2)
         }
       }
     }

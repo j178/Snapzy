@@ -12,6 +12,7 @@ struct QuickAccessActionDragPayload {
   enum Source: Equatable {
     case actionList
     case preview(slot: QuickAccessActionSlot)
+    case swipePreview(direction: QuickAccessSwipeDirection)
   }
 
   static let typeIdentifiers = [UTType.plainText.identifier]
@@ -55,6 +56,8 @@ struct QuickAccessActionDragPayload {
       return "\(Self.marker)|list|\(action.rawValue)"
     case .preview(let slot):
       return "\(Self.marker)|preview|\(slot.rawValue)|\(action.rawValue)"
+    case .swipePreview(let direction):
+      return "\(Self.marker)|swipe|\(direction.rawValue)|\(action.rawValue)"
     }
   }
 
@@ -73,6 +76,13 @@ struct QuickAccessActionDragPayload {
        let slot = QuickAccessActionSlot(rawValue: parts[2]),
        let action = QuickAccessActionKind(rawValue: parts[3]) {
       return QuickAccessActionDragPayload(action: action, source: .preview(slot: slot))
+    }
+
+    if parts.count == 4,
+       parts[1] == "swipe",
+       let direction = QuickAccessSwipeDirection(rawValue: parts[2]),
+       let action = QuickAccessActionKind(rawValue: parts[3]) {
+      return QuickAccessActionDragPayload(action: action, source: .swipePreview(direction: direction))
     }
 
     return nil

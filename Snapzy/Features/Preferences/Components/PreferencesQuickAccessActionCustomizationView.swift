@@ -10,6 +10,7 @@ import SwiftUI
 struct QuickAccessActionCustomizationView: View {
   @ObservedObject var manager: QuickAccessManager
   @ObservedObject private var actionStore = QuickAccessActionConfigurationStore.shared
+  @ObservedObject private var swipeActionStore = QuickAccessSwipeActionStore.shared
 
   var body: some View {
     Section(L10n.PreferencesQuickAccess.previewSection) {
@@ -17,7 +18,8 @@ struct QuickAccessActionCustomizationView: View {
         Spacer()
         QuickAccessSettingsPreviewCard(
           scale: CGFloat(manager.overlayScale),
-          actionStore: actionStore
+          actionStore: actionStore,
+          swipeActionStore: swipeActionStore
         )
         Spacer()
       }
@@ -52,6 +54,7 @@ struct QuickAccessActionCustomizationView: View {
           Spacer()
           Button(L10n.PreferencesQuickAccess.resetActions) {
             actionStore.resetToDefaults()
+            swipeActionStore.resetToDefaults()
           }
         }
       }

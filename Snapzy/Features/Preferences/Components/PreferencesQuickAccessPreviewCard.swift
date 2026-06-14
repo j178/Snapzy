@@ -3,10 +3,13 @@ import SwiftUI
 struct QuickAccessSettingsPreviewCard: View {
   let scale: CGFloat
   @ObservedObject var actionStore: QuickAccessActionConfigurationStore
+  @ObservedObject var swipeActionStore: QuickAccessSwipeActionStore
 
   @State private var hoveredSlot: QuickAccessActionSlot?
   @State private var dropTargetSlot: QuickAccessActionSlot?
   @State private var isRemoveTargeted = false
+  @State private var hoveredSwipeDirection: QuickAccessSwipeDirection?
+  @State private var dropTargetSwipeDirection: QuickAccessSwipeDirection?
 
   private var cardWidth: CGFloat { QuickAccessLayout.scaledCardWidth(scale) }
   private var cardHeight: CGFloat { QuickAccessLayout.scaledCardHeight(scale) }
@@ -14,12 +17,29 @@ struct QuickAccessSettingsPreviewCard: View {
   private var stackViewportHeight: CGFloat { cardHeight + 96 }
   private var previewStackSpacing: CGFloat { QuickAccessLayout.cardSpacing * 2 }
   private var popoverSideGap: CGFloat { 84 }
+  private let swipeTargetDiameter: CGFloat = 24
+  private var swipeTargetHitWidth: CGFloat { swipeTargetDiameter + 72 }
+  private var swipeTargetOffsetX: CGFloat { cardWidth / 2 + 76 }
+  private var previewFrameWidth: CGFloat { (swipeTargetOffsetX + swipeTargetHitWidth / 2) * 2 }
 
   var body: some View {
     ZStack {
       removalDropArea
+        .zIndex(0)
+
+      swipeMotionLayer
+        .zIndex(1)
 
       previewStack
+        .zIndex(2)
+
+      swipeTarget(.left)
+        .offset(x: -swipeTargetOffsetX)
+        .zIndex(3)
+
+      swipeTarget(.right)
+        .offset(x: swipeTargetOffsetX)
+        .zIndex(3)
 
       if let hoveredSlot,
          let action = actionStore.action(in: hoveredSlot) {
@@ -30,10 +50,42 @@ struct QuickAccessSettingsPreviewCard: View {
         )
         .offset(popoverOffset(for: hoveredSlot))
         .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        .zIndex(4)
+        .allowsHitTesting(false)
+      }
+
+      if let hoveredSwipeDirection, hoveredSlot == nil {
+        QuickAccessPreviewSwipeZonePopover(
+          direction: hoveredSwipeDirection,
+          action: swipeActionStore.action(for: hoveredSwipeDirection)
+        )
+        .offset(swipePopoverOffset(for: hoveredSwipeDirection))
+        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        .zIndex(4)
+        .allowsHitTesting(false)
       }
     }
-    .frame(width: cardWidth + 260, height: stackViewportHeight)
+    .frame(width: previewFrameWidth, height: stackViewportHeight)
     .animation(.easeOut(duration: 0.12), value: hoveredSlot)
+    .animation(.easeOut(duration: 0.12), value: hoveredSwipeDirection)
+  }
+
+  private var swipeMotionLayer: some View {
+    ZStack {
+      swipeArrow(.left)
+      swipeArrow(.right)
+    }
+    .allowsHitTesting(false)
+  }
+
+  private func swipeArrow(_ direction: QuickAccessSwipeDirection) -> some View {
+    QuickAccessPreviewSwipeArrow(
+      direction: direction,
+      isHighlighted: hoveredSwipeDirection == direction || dropTargetSwipeDirection == direction,
+      cardWidth: cardWidth,
+      targetOffsetX: swipeTargetOffsetX,
+      targetDiameter: swipeTargetDiameter
+    )
   }
 
   private var previewStack: some View {
@@ -109,8 +161,14 @@ struct QuickAccessSettingsPreviewCard: View {
         isTargeted: $isRemoveTargeted
       ) { providers in
         QuickAccessActionDragPayload.load(from: providers) { payload in
-          guard case .preview(let sourceSlot) = payload.source else { return }
-          actionStore.clearSlot(sourceSlot)
+          switch payload.source {
+          case .preview(let sourceSlot):
+            actionStore.clearSlot(sourceSlot)
+          case .swipePreview(let direction):
+            swipeActionStore.setAction(direction, action: nil)
+          case .actionList:
+            break
+          }
         }
         return true
       }
@@ -226,5 +284,77 @@ struct QuickAccessSettingsPreviewCard: View {
         dropTargetSlot = isTargeted ? slot : (dropTargetSlot == slot ? nil : dropTargetSlot)
       }
     )
+  }
+
+  // MARK: - Swipe Zones
+
+  private func swipeTarget(_ direction: QuickAccessSwipeDirection) -> some View {
+    let action = swipeActionStore.action(for: direction)
+    let swipeView = QuickAccessPreviewSwipeZone(
+      direction: direction,
+      action: action,
+      isTargeted: dropTargetSwipeDirection == direction,
+      isHighlighted: hoveredSwipeDirection == direction,
+      diameter: swipeTargetDiameter,
+      onHover: { isHovering in
+        hoveredSwipeDirection = isHovering ? direction : (hoveredSwipeDirection == direction ? nil : hoveredSwipeDirection)
+      }
+    )
+
+    return draggableSwipeTarget(swipeView, direction: direction, action: action)
+      .onDrop(
+        of: QuickAccessActionDragPayload.typeIdentifiers,
+        isTargeted: swipeDropTargetBinding(for: direction)
+      ) { providers in
+        assignDroppedSwipeAction(from: providers, to: direction)
+      }
+      .contextMenu {
+        Button(L10n.PreferencesQuickAccess.swipeZoneResetToDismiss) {
+          swipeActionStore.setAction(direction, action: .dismiss)
+        }
+        Button(L10n.PreferencesQuickAccess.swipeZoneClearAction) {
+          swipeActionStore.setAction(direction, action: nil)
+        }
+      }
+  }
+
+  @ViewBuilder
+  private func draggableSwipeTarget<Content: View>(
+    _ content: Content,
+    direction: QuickAccessSwipeDirection,
+    action: QuickAccessActionKind?
+  ) -> some View {
+    if let action {
+      content.onDrag {
+        QuickAccessActionDragPayload.itemProvider(action: action, source: .swipePreview(direction: direction))
+      }
+    } else {
+      content
+    }
+  }
+
+  private func assignDroppedSwipeAction(from providers: [NSItemProvider], to direction: QuickAccessSwipeDirection) -> Bool {
+    QuickAccessActionDragPayload.load(from: providers) { payload in
+      swipeActionStore.setAction(direction, action: payload.action)
+    }
+    return true
+  }
+
+  private func swipeDropTargetBinding(for direction: QuickAccessSwipeDirection) -> Binding<Bool> {
+    Binding(
+      get: { dropTargetSwipeDirection == direction },
+      set: { isTargeted in
+        dropTargetSwipeDirection = isTargeted ? direction : (dropTargetSwipeDirection == direction ? nil : dropTargetSwipeDirection)
+      }
+    )
+  }
+
+  private func swipePopoverOffset(for direction: QuickAccessSwipeDirection) -> CGSize {
+    switch direction {
+    case .left:
+      return CGSize(width: -swipeTargetOffsetX, height: -54)
+    case .right:
+      return CGSize(width: swipeTargetOffsetX, height: -54)
+    }
   }
 }
