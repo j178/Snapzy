@@ -187,6 +187,12 @@ final class RecordingRegionOverlayView: NSView {
   private var newSelectionStart: CGPoint = .zero
   private var newSelectionEnd: CGPoint = .zero
 
+  // Cross-display event monitors — allow drag/resize/reselect gestures to continue
+  // seamlessly when the pointer crosses screen boundaries. Without these, per-view
+  // mouse events stop once the pointer exits this window's frame.
+  private var crossDisplayLocalMonitor: Any?
+  private var crossDisplayGlobalMonitor: Any?
+
   // Constants
   private let dimColor = NSColor.black.withAlphaComponent(0.4)
   private let borderColor = NSColor.white
@@ -448,6 +454,174 @@ final class RecordingRegionOverlayView: NSView {
     return rect
   }
 
+  // MARK: - Unified Desktop Frame
+
+  /// Union of all connected screen frames — used as the outer boundary for
+  /// cross-display drag/resize/reselect so the selection can move freely
+  /// between displays but not drift outside the physical display area.
+  private static var unifiedDesktopFrame: CGRect {
+    NSScreen.screens.reduce(CGRect.null) { $0.union($1.frame) }
+  }
+
+  // MARK: - Cross-Display Event Monitors
+
+  /// Install local + global event monitors so drag/resize/reselect gestures
+  /// continue seamlessly when the pointer crosses a screen boundary.
+  /// Each per-screen `NSView` stops receiving `mouseDragged`/`mouseUp` once
+  /// the pointer exits its window's frame; these monitors fill that gap by
+  /// using `NSEvent.mouseLocation` (global screen coordinates).
+  private func installCrossDisplayMonitorIfNeeded() {
+    guard crossDisplayLocalMonitor == nil else { return }
+
+    crossDisplayLocalMonitor = NSEvent.addLocalMonitorForEvents(
+      matching: [.leftMouseDragged, .leftMouseUp]
+    ) { [weak self] event in
+      guard let self else { return event }
+      let screenPoint = NSEvent.mouseLocation
+      switch event.type {
+      case .leftMouseDragged:
+        self.handleCrossDisplayDrag(screenPoint: screenPoint)
+      case .leftMouseUp:
+        self.handleCrossDisplayMouseUp(screenPoint: screenPoint)
+      default:
+        break
+      }
+      // Consume the event so the per-view handler doesn't double-process.
+      return nil
+    }
+
+    crossDisplayGlobalMonitor = NSEvent.addGlobalMonitorForEvents(
+      matching: [.leftMouseDragged, .leftMouseUp]
+    ) { [weak self] event in
+      let screenPoint = NSEvent.mouseLocation
+      switch event.type {
+      case .leftMouseDragged:
+        self?.handleCrossDisplayDrag(screenPoint: screenPoint)
+      case .leftMouseUp:
+        self?.handleCrossDisplayMouseUp(screenPoint: screenPoint)
+      default:
+        break
+      }
+    }
+  }
+
+  private func removeCrossDisplayMonitor() {
+    if let monitor = crossDisplayLocalMonitor {
+      NSEvent.removeMonitor(monitor)
+      crossDisplayLocalMonitor = nil
+    }
+    if let monitor = crossDisplayGlobalMonitor {
+      NSEvent.removeMonitor(monitor)
+      crossDisplayGlobalMonitor = nil
+    }
+  }
+
+  override func removeFromSuperview() {
+    removeCrossDisplayMonitor()
+    super.removeFromSuperview()
+  }
+
+  // MARK: - Cross-Display Drag/Resize/Reselect Handlers
+
+  /// Clamp `rect` so it stays fully within the unified desktop frame.
+  private func clampRectToDesktop(_ rect: CGRect) -> CGRect {
+    let desktop = Self.unifiedDesktopFrame
+    var origin = rect.origin
+    origin.x = max(desktop.minX, min(origin.x, desktop.maxX - rect.width))
+    origin.y = max(desktop.minY, min(origin.y, desktop.maxY - rect.height))
+    return CGRect(origin: origin, size: rect.size)
+  }
+
+  /// Clamp resize result so edges stay within the unified desktop frame
+  /// while enforcing minimum selection size.
+  private func clampResizedRectToDesktop(_ rect: CGRect) -> CGRect {
+    let desktop = Self.unifiedDesktopFrame
+    var r = rect
+    // Clamp left edge
+    if r.minX < desktop.minX { r.size.width -= (desktop.minX - r.minX); r.origin.x = desktop.minX }
+    // Clamp bottom edge
+    if r.minY < desktop.minY { r.size.height -= (desktop.minY - r.minY); r.origin.y = desktop.minY }
+    // Clamp right edge
+    if r.maxX > desktop.maxX { r.size.width = desktop.maxX - r.origin.x }
+    // Clamp top edge
+    if r.maxY > desktop.maxY { r.size.height = desktop.maxY - r.origin.y }
+    // Re-enforce minimum size after clamping
+    r.size.width = max(r.width, minimumSelectionSize)
+    r.size.height = max(r.height, minimumSelectionSize)
+    return r
+  }
+
+  private func handleCrossDisplayDrag(screenPoint: CGPoint) {
+    guard let overlayWindow else { return }
+
+    if isResizing, let handle = activeHandle {
+      // Resize: compute delta in screen coordinates relative to the start point.
+      let screenStartPoint = convertToScreenCoords(resizeStartPoint)
+      let delta = CGPoint(x: screenPoint.x - screenStartPoint.x, y: screenPoint.y - screenStartPoint.y)
+      let newRect = clampResizedRectToDesktop(calculateResizedRect(handle: handle, delta: delta))
+      overlayWindow.interactionDelegate?.overlay(overlayWindow, didResizeRegionTo: newRect)
+      return
+    }
+
+    if isNewSelecting {
+      // Reselect: track in screen coordinates.
+      newSelectionEnd = screenPoint
+      // Trigger redraw on all overlay windows via the delegate's highlight update.
+      let rect = calculateNewSelectionScreenRect()
+      if rect.width > 0, rect.height > 0 {
+        overlayWindow.interactionDelegate?.overlay(overlayWindow, didResizeRegionTo: rect)
+      }
+      return
+    }
+
+    if isDragging {
+      // Drag: compute new origin in screen coordinates and clamp to desktop.
+      let newScreenOrigin = CGPoint(
+        x: screenPoint.x - dragOffset.x,
+        y: screenPoint.y - dragOffset.y
+      )
+      let newRect = clampRectToDesktop(
+        CGRect(origin: newScreenOrigin, size: highlightRect.size)
+      )
+      overlayWindow.interactionDelegate?.overlay(overlayWindow, didMoveRegionTo: newRect)
+    }
+  }
+
+  private func handleCrossDisplayMouseUp(screenPoint: CGPoint) {
+    guard let overlayWindow else {
+      removeCrossDisplayMonitor()
+      return
+    }
+
+    if isResizing {
+      isResizing = false
+      activeHandle = nil
+      removeCrossDisplayMonitor()
+      overlayWindow.interactionDelegate?.overlayDidFinishResizing(overlayWindow)
+      let localPoint = convertFromScreenCoords(screenPoint)
+      updateCursorFor(point: localPoint)
+      return
+    }
+
+    if isNewSelecting {
+      isNewSelecting = false
+      removeCrossDisplayMonitor()
+      let rect = calculateNewSelectionScreenRect()
+      if rect.width > 5, rect.height > 5 {
+        overlayWindow.interactionDelegate?.overlay(overlayWindow, didReselectWithRect: rect)
+      }
+      needsDisplay = true
+      return
+    }
+
+    if isDragging {
+      isDragging = false
+      removeCrossDisplayMonitor()
+      NSCursor.openHand.set()
+      overlayWindow.interactionDelegate?.overlayDidFinishMoving(overlayWindow)
+    }
+  }
+
   // MARK: - Mouse Events
 
   override func mouseDown(with event: NSEvent) {
@@ -463,104 +637,60 @@ final class RecordingRegionOverlayView: NSView {
       resizeStartRect = highlightRect
       resizeStartPoint = point
       cursorFor(handle: handle).set()
+      installCrossDisplayMonitorIfNeeded()
       return
     }
 
     if localRect.contains(point) {
-      // Start dragging existing selection
+      // Start dragging existing selection — store offset in screen coordinates
+      // so the drag tracks correctly across display boundaries.
       isDragging = true
+      let screenPoint = NSEvent.mouseLocation
       dragOffset = CGPoint(
-        x: point.x - localRect.origin.x,
-        y: point.y - localRect.origin.y
+        x: screenPoint.x - highlightRect.origin.x,
+        y: screenPoint.y - highlightRect.origin.y
       )
       NSCursor.closedHand.set()
+      installCrossDisplayMonitorIfNeeded()
     } else {
-      // Click outside - start new selection immediately
+      // Click outside - start new selection. Track in screen coordinates
+      // so the gesture can span multiple displays.
       isNewSelecting = true
-      newSelectionStart = point
-      newSelectionEnd = point
+      let screenPoint = NSEvent.mouseLocation
+      newSelectionStart = screenPoint
+      newSelectionEnd = screenPoint
       NSCursor.crosshair.set()
+      installCrossDisplayMonitorIfNeeded()
     }
   }
 
   override func mouseDragged(with event: NSEvent) {
-    guard isInteractionEnabled, let overlayWindow = overlayWindow else { return }
-
-    let point = convert(event.locationInWindow, from: nil)
-
-    if isResizing, let handle = activeHandle {
-      // Calculate resize delta and new rect
-      let delta = CGPoint(x: point.x - resizeStartPoint.x, y: point.y - resizeStartPoint.y)
-      let newRect = calculateResizedRect(handle: handle, delta: delta)
-      overlayWindow.interactionDelegate?.overlay(overlayWindow, didResizeRegionTo: newRect)
-      return
-    }
-
-    if isNewSelecting {
-      // Update new selection rect
-      newSelectionEnd = point
-      needsDisplay = true
-    } else if isDragging {
-      // Calculate new local origin for dragging
-      var newLocalOrigin = CGPoint(
-        x: point.x - dragOffset.x,
-        y: point.y - dragOffset.y
-      )
-
-      // Clamp to screen bounds
-      newLocalOrigin.x = max(0, min(newLocalOrigin.x, bounds.width - highlightRect.width))
-      newLocalOrigin.y = max(0, min(newLocalOrigin.y, bounds.height - highlightRect.height))
-
-      // Convert to screen coordinates
-      let screenOrigin = convertToScreenCoords(newLocalOrigin)
-      let newRect = CGRect(origin: screenOrigin, size: highlightRect.size)
-
-      // Notify delegate
-      overlayWindow.interactionDelegate?.overlay(overlayWindow, didMoveRegionTo: newRect)
-    }
+    // Cross-display monitors handle drag events via handleCrossDisplayDrag().
+    // This override is kept as a no-op guard so the gesture doesn't double-fire
+    // when the pointer is still inside this view's window.
   }
 
   override func mouseUp(with event: NSEvent) {
-    guard let overlayWindow = overlayWindow else { return }
-
-    if isResizing {
-      isResizing = false
-      activeHandle = nil
-      overlayWindow.interactionDelegate?.overlayDidFinishResizing(overlayWindow)
-      // Update cursor based on current position
-      let point = convert(event.locationInWindow, from: nil)
-      updateCursorFor(point: point)
-      return
-    }
-
-    if isNewSelecting {
-      // Complete new selection
-      isNewSelecting = false
-      let newRect = calculateNewSelectionRect()
-
-      // Only accept if selection is large enough
-      if newRect.width > 5 && newRect.height > 5 {
-        // Convert to screen coordinates
-        let screenRect = CGRect(
-          origin: convertToScreenCoords(newRect.origin),
-          size: newRect.size
-        )
-        overlayWindow.interactionDelegate?.overlay(overlayWindow, didReselectWithRect: screenRect)
-      }
-      needsDisplay = true
-    } else if isDragging {
-      isDragging = false
-      NSCursor.openHand.set()
-      overlayWindow.interactionDelegate?.overlayDidFinishMoving(overlayWindow)
-    }
+    // Cross-display monitors handle mouseUp via handleCrossDisplayMouseUp().
+    // This override is kept as a no-op guard.
   }
 
-  private func calculateNewSelectionRect() -> CGRect {
+  /// Calculate new selection rect from screen-coordinate start/end points.
+  private func calculateNewSelectionScreenRect() -> CGRect {
     let minX = min(newSelectionStart.x, newSelectionEnd.x)
     let maxX = max(newSelectionStart.x, newSelectionEnd.x)
     let minY = min(newSelectionStart.y, newSelectionEnd.y)
     let maxY = max(newSelectionStart.y, newSelectionEnd.y)
     return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+  }
+
+  /// Convert a screen-space point to this view's local coordinate space.
+  private func convertFromScreenCoords(_ screenPoint: CGPoint) -> CGPoint {
+    guard let window = window else { return screenPoint }
+    return CGPoint(
+      x: screenPoint.x - window.frame.origin.x,
+      y: screenPoint.y - window.frame.origin.y
+    )
   }
 
   override func mouseMoved(with event: NSEvent) {
@@ -887,34 +1017,41 @@ final class RecordingRegionOverlayView: NSView {
   }
 
   private func drawNewSelection() {
-    let selectionRect = calculateNewSelectionRect()
-    guard selectionRect.width > 0 && selectionRect.height > 0 else { return }
+    // New selection is now tracked in screen coordinates. Convert to local
+    // for rendering, then clip to this view's bounds.
+    let screenRect = calculateNewSelectionScreenRect()
+    guard screenRect.width > 0, screenRect.height > 0 else { return }
+
+    let localOrigin = convertFromScreenCoords(screenRect.origin)
+    let localRect = CGRect(origin: localOrigin, size: screenRect.size)
+      .intersection(bounds)
+    guard !localRect.isEmpty else { return }
 
     // Clear the selection area
     NSColor.clear.setFill()
-    selectionRect.fill(using: .copy)
+    localRect.fill(using: .copy)
 
     // Draw border
-    let borderPath = NSBezierPath(rect: selectionRect)
+    let borderPath = NSBezierPath(rect: localRect)
     borderPath.lineWidth = borderWidth
     borderColor.setStroke()
     borderPath.stroke()
 
-    // Draw size indicator
-    let sizeText = "\(Int(selectionRect.width)) x \(Int(selectionRect.height))"
+    // Draw size indicator (show full screen-space dimensions, not clipped)
+    let sizeText = "\(Int(screenRect.width)) x \(Int(screenRect.height))"
     let attributes: [NSAttributedString.Key: Any] = [
       .font: NSFont.systemFont(ofSize: 12, weight: .medium),
       .foregroundColor: NSColor.white,
     ]
     let textSize = sizeText.size(withAttributes: attributes)
     var textRect = CGRect(
-      x: selectionRect.maxX - textSize.width - 8,
-      y: selectionRect.minY - textSize.height - 8,
+      x: localRect.maxX - textSize.width - 8,
+      y: localRect.minY - textSize.height - 8,
       width: textSize.width + 8,
       height: textSize.height + 4
     )
-    if textRect.minY < 0 { textRect.origin.y = selectionRect.maxY + 4 }
-    if textRect.maxX > bounds.maxX { textRect.origin.x = selectionRect.minX }
+    if textRect.minY < 0 { textRect.origin.y = localRect.maxY + 4 }
+    if textRect.maxX > bounds.maxX { textRect.origin.x = localRect.minX }
 
     NSColor.black.withAlphaComponent(0.7).setFill()
     NSBezierPath(roundedRect: textRect, xRadius: 4, yRadius: 4).fill()

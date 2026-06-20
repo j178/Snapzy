@@ -274,6 +274,7 @@ flowchart TD
 - Opening Preferences from the menu bar during recording keeps Settings reachable without forcing a stop. When own-app capture is enabled, the active recording stream dynamically excludes that Settings window.
 - Application-window recording can start directly from the menu, independent shortcut, or `snapzy://record/application`; it uses the normal recording setup flow with `.applicationWindow` as the initial interaction mode.
 - Recording toolbar labels, output mode copy, microphone/save-folder alerts, and export errors are localized.
+- The pre-record recording region overlay (`RecordingRegionOverlayWindow`) supports cross-display drag, resize, and reselect. `RecordingRegionOverlayView` installs local + global `NSEvent` monitors on gesture start so the interaction continues seamlessly when the pointer crosses a screen boundary. Movement and resize are clamped to the unified desktop frame (union of all `NSScreen.screens` frames) instead of individual screen bounds. `SCStream` still records from a single `SCDisplay` — the display with the largest overlap wins — so the selection can be repositioned freely across displays but the captured content comes from one display.
 
 ## Post-Capture Routing
 
