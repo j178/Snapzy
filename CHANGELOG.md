@@ -75,6 +75,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
 
+
+## [1.23.0] - 2026-06-20
+
+### Features
+-  Enhance shortcut handling for annotation tools and improve import validation (#257) (c9e2b82)
+-  add overlay-free active-window quick capture (#255) (03960c4)
+
+### Bug Fixes
+-  Support cross-display drag, resize, and reselect in recording region overlay (#253) (abd6443)
+-  Enhance area selection logging and improve screen resolution handling (#253) (bbbe99b)
+-  defer quick access dismiss cleanup (#256) (88adf94)
+
+### Chore
+- feat: add overlay-free active-window quick capture (#255) (03960c4)
+- chore: update appcast, cask, and readme for v1.22.4 (efd03ef)
+
+### Contributors
+- @chkzz
+- @duongductrong
+- @github-actions[bot]
+- @jjoanna2-debug
+
 ## [1.22.4] - 2026-06-17
 
 ### Bug Fixes
