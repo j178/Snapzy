@@ -1556,7 +1556,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "Snapzy 需要麥克風權限才能錄制音頻。請在系統設置中授予訪問權限。"
+            "value": "Snapzy 需要麥克風權限才能錄製音頻。請在系統設置中授予訪問權限。"
           }
         }
       }
@@ -2460,13 +2460,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "取消录音"
+            "value": "取消录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "取消錄音"
+            "value": "取消錄屏"
           }
         }
       }
@@ -2590,13 +2590,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "删除录音"
+            "value": "删除录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "刪除錄音"
+            "value": "刪除錄屏"
           }
         }
       }
@@ -3045,13 +3045,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音选项"
+            "value": "录屏选项"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音選項"
+            "value": "錄屏選項"
           }
         }
       }
@@ -3500,13 +3500,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂停录音"
+            "value": "暂停录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "暫停錄音"
+            "value": "暫停錄屏"
           }
         }
       }
@@ -3890,13 +3890,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音进行中"
+            "value": "录屏中"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音進行中"
+            "value": "錄屏中"
           }
         }
       }
@@ -3955,13 +3955,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音暂停"
+            "value": "录屏暂停"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音暫停"
+            "value": "錄屏暫停"
           }
         }
       }
@@ -4020,13 +4020,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新开始录音"
+            "value": "重新开始录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重新開始錄音"
+            "value": "重新開始錄屏"
           }
         }
       }
@@ -4085,13 +4085,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "恢复录音"
+            "value": "恢复录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "恢復錄音"
+            "value": "恢復錄屏"
           }
         }
       }
@@ -4150,13 +4150,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音设置"
+            "value": "录屏设置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音設置"
+            "value": "錄屏設置"
           }
         }
       }
@@ -4345,13 +4345,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "开始录制为 %@"
+            "value": "开始录屏为 %@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "開始錄制為 %@"
+            "value": "開始錄屏為 %@"
           }
         }
       }
@@ -4416,7 +4416,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用當前設置開始螢幕錄制"
+            "value": "使用當前設置開始螢幕錄製"
           }
         }
       }
@@ -4475,13 +4475,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音状态栏"
+            "value": "录屏状态栏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音狀態欄"
+            "value": "錄屏狀態欄"
           }
         }
       }
@@ -4605,13 +4605,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "停止录制 - 持续时间：%@"
+            "value": "停止录屏 - 持续时间：%@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "停止錄制 - 持續時間：%@"
+            "value": "停止錄屏 - 持續時間：%@"
           }
         }
       }
@@ -4670,13 +4670,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "停止并保存录音"
+            "value": "停止并保存录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "停止並保存錄音"
+            "value": "停止並保存錄屏"
           }
         }
       }
@@ -4865,13 +4865,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音工具栏"
+            "value": "录屏工具栏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音工具欄"
+            "value": "錄屏工具欄"
           }
         }
       }
@@ -4930,13 +4930,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择 Snapzy 保存屏幕截图和录音的位置"
+            "value": "选择 Snapzy 保存屏幕截图和录屏的位置"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "選擇 Snapzy 保存螢幕截圖和錄音的位置"
+            "value": "選擇 Snapzy 保存螢幕截圖和錄屏的位置"
           }
         }
       }
@@ -4995,13 +4995,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音已取消"
+            "value": "录屏已取消"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音已取消"
+            "value": "錄屏已取消"
           }
         }
       }
@@ -5521,7 +5521,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "螢幕錄制權限被拒絕"
+            "value": "螢幕錄製權限被拒絕"
           }
         }
       }
@@ -5840,13 +5840,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音失败"
+            "value": "录屏失败"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音失敗"
+            "value": "錄屏失敗"
           }
         }
       }

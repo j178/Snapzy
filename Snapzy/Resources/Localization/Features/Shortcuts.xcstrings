@@ -1946,7 +1946,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "開始螢幕錄制"
+            "value": "開始螢幕錄製"
           }
         }
       }
@@ -2070,13 +2070,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音快捷键"
+            "value": "录屏快捷键"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音快捷鍵"
+            "value": "錄屏快捷鍵"
           }
         }
       }
@@ -2464,7 +2464,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "單擊即可錄制。錄制時使用退格鍵或行切換可關閉快捷方式。 Esc 取消。"
+            "value": "單擊即可錄製。錄製時使用退格鍵或行切換可關閉快捷方式。 Esc 取消。"
           }
         }
       }
@@ -3953,13 +3953,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅录音"
+            "value": "仅录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "僅錄音"
+            "value": "僅錄屏"
           }
         }
       }
@@ -4213,13 +4213,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "截图+录音"
+            "value": "截图+录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "截圖+錄音"
+            "value": "截圖+錄屏"
           }
         }
       }
@@ -5454,7 +5454,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 螢幕截圖和錄制選項"
+            "value": "macOS 螢幕截圖和錄製選項"
           }
         }
       }

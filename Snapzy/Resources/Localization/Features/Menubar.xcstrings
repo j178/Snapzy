@@ -451,7 +451,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "錄制螢幕"
+            "value" : "錄製螢幕"
           }
         }
       }
@@ -510,13 +510,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "停止录音 (%@)"
+            "value" : "停止录屏 (%@)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "停止錄音 (%@)"
+            "value" : "停止錄屏 (%@)"
           }
         }
       }

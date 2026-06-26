@@ -835,13 +835,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音"
+            "value": "屏幕录制"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音"
+            "value": "螢幕錄製"
           }
         }
       }
@@ -1030,7 +1030,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "正在截屏或录制时无法清除缓存。"
+            "value": "正在截屏或录屏时无法清除缓存。"
           }
         },
         "zh-Hant": {
@@ -4540,13 +4540,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择用于录制的内置或外接麦克风"
+            "value": "选择录屏时使用的内置或外接麦克风"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "選擇用於錄製的內建或外接麥克風"
+            "value": "選擇螢幕錄製時使用的內建或外接麥克風"
           }
         }
       }
@@ -5263,7 +5263,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄制預覽：%@"
+            "value": "錄屏預覽：%@"
           }
         }
       }
@@ -5452,13 +5452,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音模板"
+            "value": "录屏模板"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音模板"
+            "value": "錄屏模板"
           }
         }
       }
@@ -6818,13 +6818,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音格式"
+            "value": "录屏格式"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音格式"
+            "value": "錄屏格式"
           }
         }
       }
@@ -6883,13 +6883,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "录音质量"
+            "value": "录屏质量"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "錄音質量"
+            "value": "錄屏質量"
           }
         }
       }

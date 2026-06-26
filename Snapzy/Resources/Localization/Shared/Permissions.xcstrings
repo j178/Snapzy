@@ -185,13 +185,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择 Snapzy 保存屏幕截图和录音的位置"
+            "value" : "选择 Snapzy 保存屏幕截图和录屏的位置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇 Snapzy 保存螢幕截圖和錄音的位置"
+            "value" : "選擇 Snapzy 保存螢幕截圖和錄屏的位置"
           }
         }
       }

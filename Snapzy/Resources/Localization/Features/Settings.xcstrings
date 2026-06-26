@@ -1917,13 +1917,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 的屏幕截图和录制"
+            "value": "macOS 的屏幕截图和录屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS 的螢幕截圖和錄制"
+            "value": "macOS 的螢幕截圖和錄屏"
           }
         }
       }
@@ -3152,7 +3152,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存用于应用、截图、录制和崩溃诊断的本地日志"
+            "value": "保存用于应用、截图、录屏和崩溃诊断的本地日志"
           }
         },
         "zh-Hant": {

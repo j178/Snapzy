@@ -1940,13 +1940,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要截图和录音"
+            "value" : "需要截图和录屏"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要截圖和錄音"
+            "value" : "需要截圖和錄屏"
           }
         }
       }
@@ -2076,7 +2076,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "螢幕錄制"
+            "value" : "螢幕錄製"
           }
         }
       }
@@ -3427,13 +3427,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "录音"
+            "value" : "录屏"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "錄音"
+            "value" : "錄屏"
           }
         }
       }
@@ -4408,7 +4408,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "帶音頻錄制螢幕"
+            "value" : "帶音頻錄製螢幕"
           }
         }
       }
@@ -4473,7 +4473,7 @@
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "適用於 macOS 的強大螢幕截圖和螢幕錄制應用"
+            "value" : "適用於 macOS 的強大螢幕截圖和螢幕錄製應用"
           }
         }
       }
@@ -4662,13 +4662,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "截图和录制，简化。"
+            "value" : "截图录屏，轻松搞定。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "截圖和錄制，簡化。"
+            "value" : "截圖錄屏，輕鬆搞定。"
           }
         }
       }
